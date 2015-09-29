@@ -1,3 +1,63 @@
+<?php
+$formLabel = $this->plugin("formLabel");
+$form = $this->form;
+$form->prepare();
+$formParams = array();
+$form->setAttributes(array(
+    'action' => $this->url("application", $formParams),
+    'class' => 'form-horizontal',
+    'role' => 'form',
+));
+echo $this->form()->openTag($form);
+?>
+<div class="form-group">
+    <?php
+    $name = $form->get('host');
+    echo $this->formLabel($name);
+    ?>
+    <div class="col-sm-4">
+        <?php
+        echo $this->formElement($name);
+        echo $this->formElementErrors($name);
+        ?>
+    </div>
+</div>
+<div class="form-group">
+    <?php
+    $name = $form->get('login');
+    echo $this->formLabel($name);
+    ?>
+    <div class="col-xs-4">
+        <?php
+        echo $this->formElement($name);
+        echo $this->formElementErrors($name);
+        ?>
+    </div>
+</div>
+<div class="form-group">
+    <?php
+    $name = $form->get('password');
+    echo $this->formLabel($name);
+    ?>
+    <div class="col-xs-4">
+        <?php
+        echo $this->formElement($name);
+        echo $this->formElementErrors($name);
+        ?>
+    </div>
+
+    <?php
+    $name = $form->get('send');
+    ?>
+    <div class="col-xs-3">
+        <?php
+        echo $this->formElement($name);
+        echo $this->formElementErrors($name);
+        ?>
+    </div>
+</div>
+<?php echo $this->form()->closeTag(); ?>
+
 <div class="row">
     <div class="col-md-12">
         <div id="container" style="width:100%; height:500px;"></div>
@@ -6,20 +66,22 @@
 
 <script>
     $(function() {
-        $('#container').highcharts({
-            chart: {
-                type: 'bar'
-            },
-            title: {
-                text: ''
-            },
-            xAxis: {
-                categories: [<?= $axis ?>]
-            },
-            series: [{
-                name: 'Обновлено задач',
-                data: [<?= $series ?>]
-            }, ]
-        });
+        if(<?= $success ?>){
+            $('#container').highcharts({
+                chart: {
+                    type: 'column'
+                },
+                title: {
+                    text: ''
+                },
+                xAxis: {
+                    categories: [<?= $axis ?>]
+                },
+                series: [{
+                    name: 'Обновлено задач',
+                    data: [<?= $series ?>]
+                }, ]
+            });
+        }
     });
 </script>

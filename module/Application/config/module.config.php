@@ -61,6 +61,28 @@ return array(
         ),
         'factories' => array(
             'translator' => 'Zend\Mvc\Service\TranslatorServiceFactory',
+            'ZendCacheStorageFactory' => function() {
+                return \Zend\Cache\StorageFactory::factory(
+                    array(
+                        'adapter' => array(
+                            'name' => 'filesystem',
+                            'options' => array(
+                                'ttl' => 3600,
+                                'dirLevel' => 2,
+                                'cacheDir' => 'data/cache',
+                                'dirPermission' => 0755,
+                                'filePermission' => 0666,
+                                'namespaceSeparator' => '-db-',
+                                'key_pattern' => '/.*/',
+                            ),
+                        ),
+                        'plugins' => array('serializer'),
+                    )
+                );
+            },
+        ),
+        'aliases' => array(
+            'cache' => 'ZendCacheStorageFactory',
         ),
     ),
     'translator' => array(

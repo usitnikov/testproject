@@ -18,70 +18,62 @@ class IndexController extends AbstractActionController
 
     public function indexAction()
     {
-        $data = [];
+        $agrData = [];
+        $axis = $series = NULL;
+        $success = FALSE;
+        $form = new \Application\Forms\JiraForm();
 
-        $jiraData = $this->getORM()->getRepository('\Application\Entity\JiraDataEntity')->findAll();
-        if(count($jiraData)) {
-            foreach($jiraData as $node) {
-                if(!array_key_exists($node->getProject(), $data)) {
-                    $data[$node->getProject()] = 0;
+        $request = $this->getRequest();
+        if ($request->isPost()) {
+            $form->setData($request->getPost());
+            if ($form->isValid()) {
+
+                $cache = $this->getServiceLocator()->get('cache');
+                $key = $request->getPost()->get('host'); // jira host
+
+                $cacheData = $cache->getItem($key, $success);
+                if (!$success) {
+                    $data = [];
+                    $api = new \chobie\Jira\Api(
+                        $properties->getHost(),
+                        new \chobie\Jira\Api\Authentication\Basic($request->getPost()->get('login'), $request->getPost()->get('password'))
+                    );
+                    $walker = new \chobie\Jira\Issues\Walker($api);
+                    $walker->push("ORDER BY createdDate");
+                    $i = 0;
+                    foreach ($walker as $issue) {
+                        $data[] = $issue;
+                        if($i == 99) {
+                            break;
+                        } else {
+                            $i++;
+                        }
+                    }
+                    $cache->setItem($key, $data);
                 }
 
-                if(preg_match('/^\d{4}-\d{2}-\d{2}.*/', $node->getUpdated())) {
-                    $data[$node->getProject()]++;
+                foreach($cacheData as $node) {
+                    if(!array_key_exists($node->getProject()['name'], $agrData)) {
+                        $agrData[$node->getProject()['name']] = 0;
+                    }
+                    if (preg_match('/^\d{4}-\d{2}-\d{2}.*/', $node->getUpdated())) {
+                        $agrData[$node->getProject()['name']]++;
+                    }
+                }
+
+                foreach($agrData as $key => $value) {
+                    $axis .= '\'' .$key . '\',';
+                    $series .= $value . ',';
                 }
             }
-        } else {
-            echo "Данных нет, пожалуйста загрузите их действием application/index/getdata";
-        }
-
-        $axis = $series = '';
-        foreach($data as $key => $value) {
-            $axis .= '\'' .$key . '\',';
-            $series .= $value . ',';
         }
 
         return new ViewModel([
             'axis' => $axis,
             'series' => $series,
+            'form' => $form,
+            'success' => $success,
         ]);
-    }
-
-    public function getdataAction() {
-
-        $properties = $this->getORM()->getRepository('\Application\Entity\PropertiesEntity')->find(1);
-        if(!$properties instanceof \Application\Entity\PropertiesEntity) {
-            die();
-        }
-
-        $connection = $this->getORM()->getConnection();
-        $platform   = $connection->getDatabasePlatform();
-
-        $connection->executeUpdate($platform->getTruncateTableSQL('JiraDataEntity', true /* whether to cascade */));
-
-        $api = new \chobie\Jira\Api(
-            $properties->getHost(),
-            new \chobie\Jira\Api\Authentication\Basic($properties->getLogin(), $properties->getPassword())
-        );
-        $walker = new \chobie\Jira\Issues\Walker($api);
-        $walker->push("ORDER BY createdDate");
-        $i = 0;
-        foreach ($walker as $issue) {
-            $jiraData = new \Application\Entity\JiraDataEntity();
-            $jiraData->setIssue($issue->getKey());
-            $jiraData->setProject($issue->getProject()['name']);
-            $jiraData->setUpdated($issue->getUpdated());
-            $this->getORM()->persist($jiraData);
-            unset($jiraData);
-
-            if($i == 99) {
-                break;
-            } else {
-                $i++;
-            }
-        }
-        $this->getORM()->flush();
-        echo "done!";
     }
 
     /**
